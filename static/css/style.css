@@ -1,0 +1,258 @@
+:root {
+  --primary-color: #244b70;
+  --primary-light: #eaf1f8;
+  --sidebar-width: 250px;
+  --background-color: #f5f7fb;
+  --text-color: #344054;
+}
+
+/* Academic Terms Module */
+
+#active-term-name {
+  color: #198754;
+  font-weight: 600;
+}
+
+#total-terms,
+#inactive-terms {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+#term-semester {
+  padding: 10px 12px;
+  border-radius: 7px;
+}
+
+#academic-term-form .form-check {
+  padding-left: 2.5em;
+}
+
+#academic-term-form .form-check-input {
+  cursor: pointer;
+}
+
+#academic-term-form .form-check-label {
+  cursor: pointer;
+}
+
+/* Sections Module */
+
+#total-sections,
+#active-sections,
+#inactive-sections {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+#section-search,
+#filter-department,
+#filter-academic-term {
+  min-height: 42px;
+}
+
+#section-form .form-label {
+  font-weight: 600;
+  color: #344054;
+}
+
+#section-form .form-check {
+  padding-left: 2.5em;
+}
+
+#section-form .form-check-input {
+  cursor: pointer;
+}
+
+#section-form .form-check-label {
+  cursor: pointer;
+}
+
+#sections-table-body td {
+  vertical-align: middle;
+}
+/* Designations Module */
+
+#total-designations,
+#active-designations,
+#inactive-designations {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+#designation-search,
+#designation-status-filter {
+  min-height: 42px;
+}
+
+#designation-form .form-label {
+  font-weight: 600;
+  color: #344054;
+}
+
+#designation-form .form-check-input,
+#designation-form .form-check-label {
+  cursor: pointer;
+}
+
+#designations-table-body td {
+  vertical-align: middle;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  position: fixed;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+}
+
+.sidebar-brand {
+  padding: 25px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.sidebar-brand h4 {
+  color: var(--primary-color);
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.sidebar-brand small {
+  color: #8a94a6;
+}
+
+.sidebar-menu {
+  padding: 20px 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.menu-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #98a2b3;
+  padding: 10px 12px;
+  letter-spacing: 1px;
+}
+
+.sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 5px;
+  border-radius: 7px;
+  color: #667085;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.sidebar .nav-link i {
+  font-size: 18px;
+}
+
+.sidebar .nav-link:hover,
+.sidebar .nav-link.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  color: #98a2b3;
+}
+
+/* Main Content */
+
+.main-wrapper {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}
+
+.topbar {
+  background: white;
+  padding: 20px 30px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar h5 {
+  margin-bottom: 4px;
+  font-weight: 700;
+}
+
+.topbar small {
+  color: #98a2b3;
+}
+
+.main-content {
+  padding: 30px;
+}
+
+#course-departments {
+  min-height: 150px;
+}
+
+#report-result pre {
+  max-height: 65vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 70px;
+  }
+
+  .sidebar-brand h4,
+  .sidebar-brand small,
+  .sidebar .nav-link span,
+  .menu-label,
+  .sidebar-footer {
+    display: none;
+  }
+
+  .sidebar .nav-link {
+    justify-content: center;
+  }
+
+  .main-wrapper {
+    margin-left: 70px;
+    width: calc(100% - 70px);
+  }
+
+  .main-content {
+    padding: 15px;
+  }
+}

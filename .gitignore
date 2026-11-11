@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.py[cod]
+university.db
+.DS_Store
