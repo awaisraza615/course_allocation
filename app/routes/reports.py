@@ -3,12 +3,14 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import Response
 
 from app.services.allocation_service import list_allocation_history
 from app.services.reporting_service import (
     department_report,
     section_report,
     teacher_report,
+    teacher_workload_workbook,
     unallocated_report,
 )
 
@@ -19,6 +21,22 @@ router = APIRouter(prefix="/reports", tags=["Reports"])
 def _not_found_or_bad_request(error: ValueError) -> HTTPException:
     status = 404 if "not found" in str(error).lower() else 400
     return HTTPException(status_code=status, detail=str(error))
+
+
+@router.get("/teacher-workload.xlsx")
+async def teacher_workload_export_route(
+    teacher_id: int | None = None,
+) -> Response:
+    try:
+        workbook = teacher_workload_workbook(teacher_id)
+    except ValueError as exc:
+        raise _not_found_or_bad_request(exc) from exc
+    filename = "teacher-workload.xlsx" if teacher_id is None else f"teacher-{teacher_id}-workload.xlsx"
+    return Response(
+        content=workbook,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/teacher/{teacher_id}")

@@ -103,9 +103,10 @@ export async function renderTeachers(container) {
         <div class="col-xl-8"><div class="card border-0 shadow-sm"><div class="card-body">
           <h5 class="mb-3">Teacher Directory</h5>
           ${table(
-            ["Name", "Employee Code", "Department", "Designation", "Status", "Actions"],
+            ["Sr. No.", "Name", "Employee Code", "Department", "Designation", "Status", "Actions"],
             teachers.map(
-              (teacher) => `<tr>
+              (teacher, index) => `<tr>
+                <td>${index + 1}</td>
                 <td>${escapeHTML(teacher.full_name)}</td>
                 <td>${escapeHTML(teacher.employee_code || "—")}</td>
                 <td>${escapeHTML(teacher.department_name)}</td>
@@ -222,9 +223,10 @@ export async function renderCourses(container) {
         <div class="col-xl-8"><div class="card border-0 shadow-sm"><div class="card-body">
           <h5 class="mb-3">Course Catalog</h5>
           ${table(
-            ["Code", "Course", "Hours", "Departments", "Status", "Actions"],
+            ["Sr. No.", "Code", "Course", "Hours", "Departments", "Status", "Actions"],
             courses.map(
-              (course) => `<tr>
+              (course, index) => `<tr>
+                <td>${index + 1}</td>
                 <td>${escapeHTML(course.course_code)}</td>
                 <td>${escapeHTML(course.course_name)}</td>
                 <td>${course.theory_hours}+${course.laboratory_hours}</td>
@@ -995,7 +997,10 @@ export async function renderReports(container) {
           <div class="col-md-3" id="report-term-wrap"><label class="form-label" for="report-term">Academic term</label>
             <select class="form-select" id="report-term"><option value="">Select term</option>
               ${options(terms, "id", (term) => `${term.name} (${term.semester}) — ${active(term.is_active) ? "Active" : "Inactive"}`)}</select></div>
-          <div class="col-md-3"><button class="btn btn-primary w-100" type="submit">Generate</button></div>
+          <div class="col-md-3 d-flex gap-2">
+            <button class="btn btn-primary flex-fill" id="report-submit" type="submit">View</button>
+            <button class="btn btn-outline-success flex-fill" id="report-download" type="button">Download Excel</button>
+          </div>
         </form>
       </div></div>
       <div class="card border-0 shadow-sm"><div class="card-body"><div id="report-result"></div></div></div>`,
@@ -1005,6 +1010,8 @@ export async function renderReports(container) {
   const entityWrap = container.querySelector("#report-entity-wrap");
   const termWrap = container.querySelector("#report-term-wrap");
   const entity = container.querySelector("#report-entity");
+  const submitButton = container.querySelector("#report-submit");
+  const downloadButton = container.querySelector("#report-download");
   const updateFields = () => {
     const recordMap = {
       teacher: [teachers, (record) => `${record.full_name} — ${record.department_name}`],
@@ -1013,9 +1020,11 @@ export async function renderReports(container) {
     };
     const records = recordMap[type.value];
     entityWrap.hidden = !records;
-    termWrap.hidden = type.value === "section";
+    termWrap.hidden = ["section", "teacher"].includes(type.value);
+    submitButton.textContent = type.value === "teacher" ? "View" : "Generate";
+    downloadButton.hidden = type.value !== "teacher";
     if (records) {
-      entity.innerHTML = options(records[0], "id", records[1]);
+      entity.innerHTML = `${type.value === "teacher" ? '<option value="">All teachers</option>' : ""}${options(records[0], "id", records[1])}`;
     }
   };
   type.addEventListener("change", updateFields);
@@ -1026,7 +1035,76 @@ export async function renderReports(container) {
     const reportType = type.value;
     const termId = container.querySelector("#report-term").value;
     const entityId = entity.value;
-    if (!termId && ["teacher", "unallocated"].includes(reportType)) {
+    if (reportType === "teacher") {
+      try {
+        const [allTeachers, allocations] = await Promise.all([
+          api.get("/teachers"),
+          api.get("/allocations"),
+        ]);
+        const filteredTeachers = entityId
+          ? allTeachers.filter((teacher) => String(teacher.id) === entityId)
+          : allTeachers;
+        const teacherTotals = new Map(filteredTeachers.map((teacher) => [Number(teacher.id), 0]));
+        allocations.forEach((allocation) => {
+          const teacherId = Number(allocation.teacher_id);
+          if (teacherTotals.has(teacherId)) {
+            teacherTotals.set(
+              teacherId,
+              teacherTotals.get(teacherId) + Number(allocation.workload_hours),
+            );
+          }
+        });
+        const rows = filteredTeachers.flatMap((teacher) => {
+          const assignedCourses = allocations.filter(
+            (allocation) => Number(allocation.teacher_id) === Number(teacher.id),
+          );
+          return (assignedCourses.length ? assignedCourses : [null]).map((allocation) => ({
+            teacher,
+            allocation,
+          }));
+        }).sort((a, b) =>
+          a.teacher.full_name.localeCompare(b.teacher.full_name, undefined, { sensitivity: "base" })
+          || String(a.allocation?.course_name ?? "").localeCompare(
+            String(b.allocation?.course_name ?? ""),
+            undefined,
+            { sensitivity: "base" },
+          )
+          || String(a.allocation?.academic_term ?? "").localeCompare(
+            String(b.allocation?.academic_term ?? ""),
+            undefined,
+            { sensitivity: "base" },
+          )
+          || String(a.allocation?.section_name ?? "").localeCompare(
+            String(b.allocation?.section_name ?? ""),
+            undefined,
+            { sensitivity: "base" },
+          ),
+        );
+        container.querySelector("#report-result").innerHTML = `
+          <h5>Teacher workload report</h5>
+          ${table(
+            ["Sr. No.", "Teacher", "Teacher Department", "Designation", "Course Code", "Course Name", "Academic Year", "Academic Term", "Semester", "Section", "Assigned Department", "Course Workload (Hours)", "Total Workload (All Terms)"],
+            rows.map(({ teacher, allocation }, index) => `<tr>
+              <td>${index + 1}</td><td>${escapeHTML(teacher.full_name)}</td>
+              <td>${escapeHTML(teacher.department_name)}</td><td>${escapeHTML(teacher.designation_name)}</td>
+              <td>${escapeHTML(allocation?.course_code ?? "—")}</td>
+              <td>${escapeHTML(allocation?.course_name ?? "No courses assigned")}</td>
+              <td>${escapeHTML(terms.find((term) => Number(term.id) === Number(allocation?.academic_term_id))?.academic_year ?? "—")}</td>
+              <td>${escapeHTML(allocation?.academic_term ?? "—")}</td>
+              <td>${escapeHTML(terms.find((term) => Number(term.id) === Number(allocation?.academic_term_id))?.semester ?? "—")}</td>
+              <td>${escapeHTML(allocation?.section_name ?? "—")}</td>
+              <td>${escapeHTML(allocation?.course_department ?? "—")}</td>
+              <td>${allocation?.workload_hours ?? "—"}</td>
+              <td>${teacherTotals.get(Number(teacher.id))}</td>
+            </tr>`),
+            "No teachers found.",
+          )}`;
+      } catch (error) {
+        showError(container, error);
+      }
+      return;
+    }
+    if (!termId && reportType === "unallocated") {
       showError(container, new Error("Select an academic term for this report."));
       return;
     }
@@ -1048,6 +1126,30 @@ export async function renderReports(container) {
       container.querySelector("#report-result").innerHTML = `
         <h5>Report results</h5>
         <pre class="bg-light border rounded p-3 mb-0">${escapeHTML(JSON.stringify(result, null, 2))}</pre>`;
+    } catch (error) {
+      showError(container, error);
+    }
+  });
+  downloadButton.addEventListener("click", async () => {
+    const teacherId = entity.value;
+    try {
+      const query = teacherId ? `?teacher_id=${encodeURIComponent(teacherId)}` : "";
+      const response = await fetch(`/reports/teacher-workload.xlsx${query}`);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || "Unable to generate the teacher workload workbook.");
+      }
+      const workbook = await response.blob();
+      const url = URL.createObjectURL(workbook);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = teacherId
+        ? `teacher-${teacherId}-workload.xlsx`
+        : "teacher-workload.xlsx";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
     } catch (error) {
       showError(container, error);
     }
